@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Kuis</title>
+<style>
+  :root{
+    --paper:#EFEAE0;
+    --ink:#22201C;
+    --card:#FBF8F2;
+    --accent:#3B5C4F;
+    --accent-2:#B5482D;
+    --line:#D8D0C0;
+    --wrong:#B5482D;
+    --right:#3B5C4F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(34,32,28,0.06) 1px, transparent 0);
+    background-size: 22px 22px;
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .stage{
+    width:100%;
+    max-width:560px;
+  }
+  .eyebrow{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .timer{
+    font-variant-numeric: tabular-nums;
+    letter-spacing:.06em;
+    padding:3px 9px;
+    border:1px solid var(--accent);
+    border-radius:20px;
+    color:var(--accent);
+    transition: color .2s, border-color .2s, background .2s;
+  }
+  .timer.warn{
+    color:var(--wrong);
+    border-color:var(--wrong);
+    background:rgba(181,72,45,0.08);
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:40px 36px;
+    box-shadow: 0 1px 0 var(--line), 0 12px 24px -12px rgba(34,32,28,0.25);
+    position:relative;
+    min-height:360px;
+    display:flex;
+    flex-direction:column;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    top:0; left:28px; right:28px;
+    height:1px;
+    background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 12px);
+  }
+  h1{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:14px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    margin:0 0 24px;
+    color:var(--ink);
+    opacity:.6;
+  }
+  .question{
+    font-size:26px;
+    line-height:1.35;
+    margin:0 0 28px;
+    flex:0 0 auto;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top:auto;
+  }
+  .opt{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    text-align:left;
+    background:transparent;
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:14px 16px;
+    font-size:15px;
+    color:var(--ink);
+    cursor:pointer;
+    transition: border-color .15s, background .15s, transform .1s;
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .opt:hover{ border-color: var(--accent); background:rgba(59,92,79,0.06); }
+  .opt:active{ transform: scale(0.99); }
+  .opt .k{
+    font-weight:700;
+    color:var(--accent);
+    opacity:.7;
+  }
+  .opt.correct{
+    border-color: var(--right);
+    background: rgba(59,92,79,0.12);
+  }
+  .opt.wrong{
+    border-color: var(--wrong);
+    background: rgba(181,72,45,0.10);
+  }
+  .opt[disabled]{ cursor:default; }
+  .opt:hover[disabled]{ background:transparent; }
+  .opt.correct:hover[disabled]{ background: rgba(59,92,79,0.12); }
+  .opt.wrong:hover[disabled]{ background: rgba(181,72,45,0.10); }
+
+  .foot{
+    margin-top:24px;
+    display:flex;
+    justify-content:flex-end;
+  }
+  .next{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    background:var(--accent);
+    color:var(--card);
+    border:none;
+    border-radius:3px;
+    padding:11px 22px;
+    font-size:13px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s;
+  }
+  .next.show{ opacity:1; pointer-events:auto; }
+  .next:hover{ background:#2c4a3f; }
+
+  .progress{
+    display:flex;
+    gap:4px;
+    margin-bottom:18px;
+  }
+  .dot{
+    flex:1;
+    height:3px;
+    background:var(--line);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .dot i{
+    display:block;
+    height:100%;
+    width:0%;
+    background:var(--accent);
+    transition:width .2s;
+  }
+  .dot.done i{ width:100%; }
+  .dot.done.bad i{ background:var(--wrong); }
+
+  .result{
+    text-align:center;
+    margin:auto;
+  }
+  .result .score{
+    font-size:64px;
+    color:var(--accent);
+    line-height:1;
+    margin-bottom:6px;
+  }
+  .result .label{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    font-size:12px;
+    color:var(--ink);
+    opacity:.6;
+    margin-bottom:28px;
+  }
+  .result .msg{
+    font-size:18px;
+    margin-bottom:32px;
+  }
+  .restart{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    background:transparent;
+    color:var(--accent);
+    border:1px solid var(--accent);
+    border-radius:3px;
+    padding:12px 26px;
+    font-size:13px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .restart:hover{ background:rgba(59,92,79,0.08); }
+
+  /* Start screen */
+  .start{
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    flex:1;
+  }
+  .start .title{
+    font-size:30px;
+    margin:0 0 8px;
+    line-height:1.25;
+  }
+  .start .sub{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    opacity:.65;
+    margin:0 0 28px;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:18px;
+  }
+  .field label{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:700;
+  }
+  .field input{
+    font-family: 'Georgia', serif;
+    font-size:16px;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+  }
+  .field input:focus{ border-color:var(--accent); }
+  .field .err{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    color:var(--wrong);
+    display:none;
+  }
+  .field.invalid .err{ display:block; }
+  .field.invalid input{ border-color:var(--wrong); }
+  .start .foot{ margin-top:8px; justify-content:flex-end; }
+  .instructions{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px 18px;
+    margin-bottom:22px;
+  }
+  .instructions-title{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:700;
+    margin-bottom:10px;
+  }
+  .instructions ul{
+    margin:0;
+    padding-left:18px;
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:13.5px;
+    line-height:1.6;
+    color:var(--ink);
+  }
+  .instructions li{ margin-bottom:6px; }
+  .instructions li:last-child{ margin-bottom:0; }
+  .instructions strong{ color:var(--accent); }
+  .startBtn{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    background:var(--accent);
+    color:var(--card);
+    border:none;
+    border-radius:3px;
+    padding:13px 26px;
+    font-size:13px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .startBtn:hover{ background:#2c4a3f; }
+
+  .picked{
+    border-color: var(--accent) !important;
+    background: rgba(59,92,79,0.08) !important;
+  }
+
+  .share{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    background:var(--accent);
+    color:var(--card);
+    border:none;
+    border-radius:3px;
+    padding:12px 26px;
+    font-size:13px;
+    letter-spacing:.04em;
+    text-transform:uppercase;
+    font-weight:700;
+    cursor:pointer;
+    margin-right:10px;
+  }
+  .share:hover{ background:#2c4a3f; }
+  .result .who{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:13px;
+    color:var(--ink);
+    opacity:.6;
+    margin-bottom:4px;
+  }
+  .copiedNote{
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size:12px;
+    color:var(--accent);
+    margin-top:14px;
+    opacity:0;
+    transition:opacity .2s;
+  }
+  .copiedNote.show{ opacity:1; }
+
+  @media (max-width:480px){
+    .card{ padding:28px 22px; min-height:320px; }
+    .question{ font-size:21px; }
+    .start .title{ font-size:24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="eyebrow"><span>Kuis</span><span class="timer" id="timer">30:00</span><span id="counter">1 / 10</span></div>
+  <div class="progress" id="progress"></div>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+// ====== EDIT SOAL DI SINI ======
+const QUESTIONS = [
+  // --- Perhitungan Harga (berdasarkan Pricelist terlampir) ---
+  { q: "Toko ABC memesan barang berikut: 12 dus Thinwall Rectangle 250ml merek SKJ, 5 dus Cake Case Polos 125ml merek SKJ, dan 11 dus Bubble Wrap Bening. Berapa total harga invoice-nya?", options: ["Rp12.675.000", "Rp12.975.000", "Rp13.225.000", "Rp12.825.000"], correct: 1 },
+  { q: "Toko membeli 8 dus Cake Case Motif 7ml merek SKJ dan 3 dus Gelas Jelly 55ml merek SKJ. Berapa total harga invoice-nya?", options: ["Rp7.520.000", "Rp7.820.000", "Rp8.020.000", "Rp7.620.000"], correct: 1 },
+  { q: "Toko membeli 4 dus Lilin SKJ Angka 2. Berapa total harga yang harus dibayar?", options: ["Rp52.000", "Rp54.000", "Rp56.000", "Rp58.000"], correct: 2 },
+  { q: "Toko membeli 6 bal Kantong Sampah Hitam Aramba 90x120 dan 2 bal PP Standing Pouch SKJ 16x24. Berapa total harga invoice-nya?", options: ["Rp7.450.000", "Rp7.750.000", "Rp7.950.000", "Rp7.650.000"], correct: 1 },
+  { q: "Toko membeli 15 dus Paper Bowl Polos Coklat Kraf 650ml dan 5 dus Cake Case Motif 95ml merek SKJ. Berapa total harga invoice-nya?", options: ["Rp2.450.000", "Rp2.650.000", "Rp2.850.000", "Rp2.550.000"], correct: 1 },
+  { q: "Toko memesan 45 pack Cake Case Polos 55 ml merek SKJ (1 pack isi 10 pcs, dijual per pcs). Berapa total harga yang harus dibayar?", options: ["Rp340.000", "Rp350.000", "Rp360.000", "Rp370.000"], correct: 2 },
+  { q: "Toko membeli 7 dus Paper Bowl Polos Coklat Kraf 500ml dan 15 bal PP Standing Pouch SKJ 16x32. Berapa total harga invoice untuk kedua barang ini?", options: ["Rp26.122.500", "Rp26.422.500", "Rp26.722.500", "Rp26.222.500"], correct: 1 },
+  { q: "Toko membeli 20 dus Alas Tatakan Kue 27x27. Berapa total harga yang harus dibayar?", options: ["Rp1.250.000", "Rp1.300.000", "Rp1.350.000", "Rp1.400.000"], correct: 2 },
+  { q: "Toko membeli 9 dus Thinwall Rectangle 300ml merek SKJ, 6 dus Gelas Jelly 65ml merek SKJ, dan 10 bal Kantong HD Hitam Aramba uk 24. Berapa total harga invoice-nya?", options: ["Rp14.915.000", "Rp15.215.000", "Rp15.515.000", "Rp15.115.000"], correct: 1 },
+  { q: "Toko membeli 6 dus Thinwall Rectangle 350ml merek SKJ, 8 dus Gelas Jelly 65ml merek SKJ, dan 5 bal Kantong Sampah Hitam Yuka 60x100. Berapa total harga invoice-nya?", options: ["Rp11.632.500", "Rp11.932.500", "Rp12.232.500", "Rp11.832.500"], correct: 1 }
+];
+// ================================
+
+// ====== TIMER KESELURUHAN (dalam detik) ======
+const TIME_LIMIT_SECONDS = 30 * 60; // 30 menit
+// ================================
+
+// Set ke true kalau sudah siap dipakai peserta sungguhan (tes hanya bisa 1x per perangkat)
+const ENABLE_LOCK = true;
+
+let current = 0;
+let score = 0;
+let selections = []; // index chosen per question, no correctness shown during quiz
+let player = { name: '', phone: '' };
+let timeLeft = TIME_LIMIT_SECONDS;
+let timerInterval = null;
+let quizFinished = false;
+
+const card = document.getElementById('card');
+const counter = document.getElementById('counter');
+const progressEl = document.getElementById('progress');
+const eyebrowEl = document.querySelector('.eyebrow');
+const timerEl = document.getElementById('timer');
+
+function formatTime(sec){
+  const m = Math.floor(sec / 60).toString().padStart(2,'0');
+  const s = Math.floor(sec % 60).toString().padStart(2,'0');
+  return m + ':' + s;
+}
+
+function startTimer(){
+  timeLeft = TIME_LIMIT_SECONDS;
+  timerEl.textContent = formatTime(timeLeft);
+  timerEl.classList.remove('warn');
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    if(timeLeft <= 0){
+      timeLeft = 0;
+      timerEl.textContent = formatTime(timeLeft);
+      clearInterval(timerInterval);
+      if(!quizFinished) finishQuiz();
+      return;
+    }
+    timerEl.textContent = formatTime(timeLeft);
+    if(timeLeft <= 60) timerEl.classList.add('warn');
+  }, 1000);
+}
+
+function stopTimer(){
+  clearInterval(timerInterval);
+}
+
+function buildProgress(){
+  progressEl.innerHTML = '';
+  QUESTIONS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.innerHTML = '<i></i>';
+    d.id = 'dot-' + i;
+    progressEl.appendChild(d);
+  });
+}
+
+function renderStart(){
+  quizFinished = false;
+  stopTimer();
+  eyebrowEl.style.visibility = 'hidden';
+  progressEl.style.visibility = 'hidden';
+  card.innerHTML = `
+    <div class="start">
+      <h1>Mulai Kuis</h1>
+      <p class="title">Sebelum mulai, isi datamu dulu</p>
+      <p class="sub">Nama dan nomor HP dipakai untuk mencatat hasil kuismu.</p>
+
+      <div class="field" id="nameField">
+        <label for="nameInput">Nama</label>
+        <input id="nameInput" type="text" placeholder="Nama lengkap">
+        <span class="err">Nama wajib diisi.</span>
+      </div>
+
+      <div class="field" id="phoneField">
+        <label for="phoneInput">Nomor HP</label>
+        <input id="phoneInput" type="tel" placeholder="08xxxxxxxxxx">
+        <span class="err">Masukkan nomor HP yang valid.</span>
+      </div>
+
+      <div class="instructions">
+        <div class="instructions-title">Petunjuk Pengerjaan</div>
+        <ul>
+          <li>Tes ini hanya dapat diisi dalam waktu <strong>30 menit</strong>. Setelah waktu habis, tes akan berakhir otomatis.</li>
+          <li>Soal berbentuk <strong>pilihan ganda</strong>.</li>
+          <li>Setelah mengisi nama &amp; nomor HP, kamu wajib <strong>memilih satu jawaban</strong> pada setiap soal untuk bisa lanjut ke soal berikutnya.</li>
+          <li>Tes hanya bisa dikerjakan <strong>satu kali</strong> dan tidak dapat diulang.</li>
+        </ul>
+      </div>
+
+      <div class="foot">
+        <button class="startBtn" id="startBtn">Mulai Kuis</button>
+      </div>
+    </div>
+  `;
+}
+
+function validateStart(){
+  const nameInput = document.getElementById('nameInput');
+  const phoneInput = document.getElementById('phoneInput');
+  const nameField = document.getElementById('nameField');
+  const phoneField = document.getElementById('phoneField');
+
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+  const phoneOk = /^[0-9+\-\s]{8,15}$/.test(phone);
+
+  nameField.classList.toggle('invalid', name.length === 0);
+  phoneField.classList.toggle('invalid', !phoneOk);
+
+  if(name.length === 0 || !phoneOk) return false;
+
+  player.name = name;
+  player.phone = phone;
+  return true;
+}
+
+function renderQuestion(){
+  eyebrowEl.style.visibility = 'visible';
+  progressEl.style.visibility = 'visible';
+  const item = QUESTIONS[current];
+  counter.textContent = (current+1) + ' / ' + QUESTIONS.length;
+
+  const letters = ['A','B','C','D','E','F'];
+  card.innerHTML = `
+    <h1>Pertanyaan ${current+1}</h1>
+    <p class="question">${item.q}</p>
+    <div class="options" id="options"></div>
+    <div class="foot"><button class="next" id="nextBtn">${current === QUESTIONS.length-1 ? 'Lihat Hasil' : 'Lanjut'}</button></div>
+  `;
+
+  const optionsEl = document.getElementById('options');
+  item.options.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span class="k">${letters[i]}</span><span>${opt}</span>`;
+    b.onclick = () => selectAnswer(i);
+    optionsEl.appendChild(b);
+  });
+
+  if(selections[current] !== undefined){
+    const opts = document.querySelectorAll('.opt');
+    opts[selections[current]].classList.add('picked');
+    document.getElementById('nextBtn').classList.add('show');
+  }
+}
+
+function selectAnswer(i){
+  const opts = document.querySelectorAll('.opt');
+  opts.forEach(o => o.classList.remove('picked'));
+  opts[i].classList.add('picked');
+
+  selections[current] = i;
+
+  const dot = document.getElementById('dot-' + current);
+  dot.classList.add('done');
+
+  document.getElementById('nextBtn').classList.add('show');
+}
+
+document.addEventListener('click', (e) => {
+  if(e.target && e.target.id === 'startBtn'){
+    if(validateStart()){
+      if(ENABLE_LOCK){
+        try{
+          localStorage.setItem(LOCK_KEY, 'true');
+          localStorage.setItem(STARTED_KEY, JSON.stringify({
+            name: player.name,
+            phone: player.phone
+          }));
+        }catch(e){
+          // localStorage tidak tersedia, lanjutkan tanpa kunci
+        }
+      }
+      buildProgress();
+      renderQuestion();
+      startTimer();
+    }
+  }
+  if(e.target && e.target.id === 'nextBtn'){
+    if(current < QUESTIONS.length - 1){
+      current++;
+      renderQuestion();
+    } else {
+      finishQuiz();
+    }
+  }
+  if(e.target && e.target.id === 'restartBtn'){
+    current = 0; score = 0; selections = [];
+    player = { name: '', phone: '' };
+    renderStart();
+  }
+  if(e.target && e.target.id === 'shareBtn'){
+    shareResult();
+  }
+});
+
+function finishQuiz(){
+  quizFinished = true;
+  stopTimer();
+  score = 0;
+  QUESTIONS.forEach((item, i) => {
+    if(selections[i] === item.correct) score++;
+  });
+  try{
+    if(ENABLE_LOCK){
+      localStorage.setItem(LOCK_KEY, 'true');
+    }
+    localStorage.setItem(RESULT_KEY, JSON.stringify({
+      name: player.name,
+      phone: player.phone,
+      score: score,
+      total: QUESTIONS.length
+    }));
+  }catch(e){
+    // localStorage tidak tersedia, lanjutkan tanpa kunci
+  }
+  renderResult();
+}
+
+function buildShareText(pct){
+  return `Hasil Kuis\nNama: ${player.name}\nSkor: ${score}/${QUESTIONS.length} (${pct}%)`;
+}
+
+function renderResult(){
+  eyebrowEl.style.visibility = 'hidden';
+  progressEl.style.visibility = 'hidden';
+  const pct = Math.round((score / QUESTIONS.length) * 100);
+  let msg;
+  if(pct === 100) msg = "Sempurna! Semua jawaban benar.";
+  else if(pct >= 60) msg = "Kerja bagus, hampir sempurna.";
+  else if(pct >= 40) msg = "Lumayan, coba lagi untuk skor lebih tinggi.";
+  else msg = "Yuk coba lagi, kamu pasti bisa lebih baik.";
+
+  card.innerHTML = `
+    <div class="result">
+      <div class="who">${player.name}</div>
+      <div class="who">${player.phone}</div>
+      <div class="score">${score}/${QUESTIONS.length}</div>
+      <div class="label">Skor Kamu · ${pct}%</div>
+      <p class="msg">${msg}</p>
+      <p class="msg" style="font-size:13px;opacity:.6;">Tes ini tidak dapat diulang.</p>
+      <div>
+        <button class="share" id="shareBtn">Bagikan Hasil</button>
+      </div>
+      <div class="copiedNote" id="copiedNote">Hasil disalin ke clipboard.</div>
+    </div>
+  `;
+}
+
+async function shareResult(){
+  const pct = Math.round((score / QUESTIONS.length) * 100);
+  const text = buildShareText(pct);
+
+  if(navigator.share){
+    try{
+      await navigator.share({ title: 'Hasil Kuis', text });
+      return;
+    }catch(e){
+      // user cancelled or share failed, fall back to clipboard
+    }
+  }
+
+  try{
+    await navigator.clipboard.writeText(text);
+    const note = document.getElementById('copiedNote');
+    note.classList.add('show');
+    setTimeout(() => note.classList.remove('show'), 2500);
+  }catch(e){
+    alert(text);
+  }
+}
+
+const LOCK_KEY = 'excel_test_skj_completed_v1';
+const RESULT_KEY = 'excel_test_skj_result_v1';
+const STARTED_KEY = 'excel_test_skj_started_v1';
+
+function renderLocked(){
+  eyebrowEl.style.visibility = 'hidden';
+  progressEl.style.visibility = 'hidden';
+
+  let saved = null;
+  try{
+    const raw = localStorage.getItem(RESULT_KEY);
+    if(raw) saved = JSON.parse(raw);
+  }catch(e){
+    saved = null;
+  }
+
+  if(saved){
+    const pct = Math.round((saved.score / saved.total) * 100);
+    card.innerHTML = `
+      <div class="result">
+        <div class="who">${saved.name}</div>
+        <div class="who">${saved.phone}</div>
+        <div class="score">${saved.score}/${saved.total}</div>
+        <div class="label">Skor Kamu · ${pct}%</div>
+        <p class="msg">Tes ini hanya bisa dikerjakan satu kali dan sudah kamu selesaikan sebelumnya di perangkat ini. Tes tidak dapat diulang.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let started = null;
+  try{
+    const raw = localStorage.getItem(STARTED_KEY);
+    if(raw) started = JSON.parse(raw);
+  }catch(e){
+    started = null;
+  }
+
+  if(started){
+    card.innerHTML = `
+      <div class="result">
+        <div class="who">${started.name}</div>
+        <div class="who">${started.phone}</div>
+        <div class="label">Tes Sudah Pernah Dibuka</div>
+        <p class="msg">Tes ini sudah pernah dimulai sebelumnya di perangkat ini dan tidak dapat dibuka atau diulang kembali untuk menjaga keadilan tes. Silakan hubungi panitia jika ini terjadi karena kendala teknis.</p>
+      </div>
+    `;
+  } else {
+    card.innerHTML = `
+      <div class="result">
+        <div class="label">Tes Sudah Diselesaikan</div>
+        <p class="msg">Tes ini hanya bisa dikerjakan satu kali dan sudah kamu selesaikan sebelumnya di perangkat ini. Tes tidak dapat diulang.</p>
+      </div>
+    `;
+  }
+}
+
+function init(){
+  let locked = false;
+  if(ENABLE_LOCK){
+    try{
+      locked = localStorage.getItem(LOCK_KEY) === 'true';
+    }catch(e){
+      locked = false;
+    }
+  }
+  if(locked){
+    renderLocked();
+  } else {
+    renderStart();
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
